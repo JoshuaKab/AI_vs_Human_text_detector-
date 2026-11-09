@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f5f4ef">
+    <title>Origin — AI text detector</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #17241f;
+        --muted: #65726b;
+        --paper: #f5f4ef;
+        --card: #fffefa;
+        --line: #e5e8df;
+        --green: #35735a;
+        --green-dark: #285d46;
+        --mint: #e8f1e9;
+        --amber: #a26d26;
+        --shadow: 0 24px 70px rgba(32, 54, 43, .08);
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background:
+          radial-gradient(ellipse at 82% 7%, rgba(216, 229, 208, .48), transparent 28rem),
+          var(--paper);
+        color: var(--ink);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        min-height: 100vh;
+      }
+      button, textarea { font: inherit; }
+      .shell { width: min(1120px, calc(100% - 48px)); margin: 0 auto; }
+      header {
+        height: 82px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid rgba(32, 54, 43, .09);
+      }
+      .brand { display: flex; align-items: center; gap: 11px; font-size: 15px; font-weight: 700; letter-spacing: -.03em; }
+      .brand-mark {
+        width: 31px; height: 31px; display: grid; place-items: center;
+        color: white; background: var(--green); border-radius: 10px;
+        font: 700 15px Georgia, serif;
+      }
+      .status {
+        color: var(--muted); font-size: 12px; display: flex; align-items: center; gap: 8px;
+      }
+      .status-dot { width: 7px; height: 7px; background: #d29a42; border-radius: 50%; }
+      .status.ready .status-dot { background: #55a477; }
+      main { padding: 82px 0 64px; }
+      .intro { max-width: 720px; margin: 0 auto 39px; text-align: center; }
+      .eyebrow {
+        display: inline-flex; align-items: center; gap: 8px;
+        color: var(--green); font-size: 11px; font-weight: 750;
+        letter-spacing: .14em; text-transform: uppercase;
+      }
+      .eyebrow::before { content: ""; width: 18px; height: 1px; background: #8caf98; }
+      h1 {
+        margin: 17px 0 15px; font: 500 clamp(42px, 6vw, 66px)/1.04 Georgia, "Times New Roman", serif;
+        letter-spacing: -.055em;
+      }
+      .intro p { max-width: 560px; margin: 0 auto; color: var(--muted); font-size: 16px; line-height: 1.65; }
+      .workspace {
+        max-width: 890px; margin: auto; display: grid; grid-template-columns: minmax(0, 1fr) 250px;
+        background: var(--card); border: 1px solid var(--line); border-radius: 20px;
+        box-shadow: var(--shadow); overflow: hidden;
+      }
+      .compose { padding: 26px 28px 22px; }
+      .field-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 13px; }
+      .field-top label { font-size: 13px; font-weight: 700; }
+      .counter { color: #89938d; font-size: 11px; font-variant-numeric: tabular-nums; }
+      textarea {
+        display: block; width: 100%; height: 244px; resize: vertical; outline: none;
+        border: 0; color: var(--ink); background: transparent;
+        font-size: 15px; line-height: 1.72;
+      }
+      textarea::placeholder { color: #a2aaa4; }
+      textarea:focus-visible { outline: none; }
+      .compose-footer {
+        border-top: 1px solid var(--line); padding-top: 17px; margin-top: 6px;
+        display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      }
+      .hint { color: #8a948e; font-size: 11px; line-height: 1.4; }
+      .analyze {
+        border: 0; border-radius: 9px; color: white; background: var(--green);
+        padding: 12px 17px; display: inline-flex; align-items: center; gap: 12px;
+        font-size: 12px; font-weight: 700; cursor: pointer; transition: background .18s, transform .18s;
+      }
+      .analyze:hover { background: var(--green-dark); transform: translateY(-1px); }
+      .analyze:disabled { opacity: .65; cursor: wait; transform: none; }
+      .analyze span { font-size: 16px; font-weight: 400; }
+      .aside {
+        background: #f8f8f3; border-left: 1px solid var(--line); padding: 26px 22px;
+        display: flex; flex-direction: column;
+      }
+      .aside-label { color: #8a948e; font-size: 10px; font-weight: 750; letter-spacing: .12em; text-transform: uppercase; }
+      .result-empty { color: #89938d; font: 15px/1.55 Georgia, serif; margin-top: 32px; }
+      .result { display: none; margin-top: 28px; }
+      .result.show { display: block; }
+      .result-label { font: 27px Georgia, serif; letter-spacing: -.04em; }
+      .result-label.ai { color: var(--amber); }
+      .result-label.human { color: var(--green); }
+      .score-caption { color: var(--muted); margin: 10px 0 7px; font-size: 11px; }
+      .score-value { font-size: 23px; font-variant-numeric: tabular-nums; }
+      .bar { height: 5px; background: #e6e9e1; border-radius: 10px; overflow: hidden; margin-top: 13px; }
+      .bar-fill { height: 100%; width: 0; border-radius: inherit; background: var(--green); transition: width .4s ease; }
+      .bar-fill.ai { background: #c28a3c; }
+      .scores { display: grid; gap: 11px; border-top: 1px solid var(--line); margin-top: 21px; padding-top: 16px; }
+      .score-row { display: flex; justify-content: space-between; color: var(--muted); font-size: 11px; }
+      .score-row strong { color: var(--ink); font-variant-numeric: tabular-nums; }
+      .error { display: none; margin-top: 19px; color: #a64e39; font-size: 12px; line-height: 1.5; }
+      .error.show { display: block; }
+      .disclaimer {
+        max-width: 780px; margin: 23px auto 0; color: #8a948e; text-align: center;
+        font-size: 11px; line-height: 1.6;
+      }
+      .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; max-width: 890px; margin: 65px auto 0; }
+      .step { border-top: 1px solid #dfe4da; padding-top: 14px; }
+      .step-number { color: #7a9a82; font: 15px Georgia, serif; }
+      .step h2 { margin: 11px 0 7px; font-size: 13px; }
+      .step p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.55; }
+      footer { padding: 20px 0 28px; color: #909992; font-size: 10px; border-top: 1px solid rgba(32, 54, 43, .09); }
+      .message { color: var(--muted); font-size: 12px; line-height: 1.5; margin-top: 16px; }
+      @media (max-width: 700px) {
+        .shell { width: min(100% - 30px, 560px); }
+        header { height: 68px; }
+        main { padding: 58px 0 48px; }
+        .intro { margin-bottom: 29px; }
+        .intro p { font-size: 14px; }
+        .workspace { grid-template-columns: 1fr; }
+        .compose { padding: 21px 19px 18px; }
+        textarea { height: 205px; font-size: 14px; }
+        .aside { border-left: 0; border-top: 1px solid var(--line); min-height: 150px; padding: 19px; }
+        .result-empty { margin-top: 16px; }
+        .result { margin-top: 15px; }
+        .steps { grid-template-columns: 1fr; gap: 19px; margin-top: 45px; }
+      }
+      @media (max-width: 420px) {
+        .hint { max-width: 145px; }
+        .analyze { padding: 11px 12px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header>
+        <div class="brand"><div class="brand-mark">o</div> origin<span style="font-weight:400;color:#87918a"> / text analysis</span></div>
+        <div class="status" id="status"><span class="status-dot"></span><span id="status-text">Connecting to detector</span></div>
+      </header>
+
+      <main>
+        <section class="intro">
+          <div class="eyebrow">A closer look at language</div>
+          <h1>Who wrote this?</h1>
+          <p>Explore whether a passage resembles AI-generated or human-written text. Add a sample below to see the model's estimate.</p>
+        </section>
+
+        <section class="workspace" aria-label="Text analysis">
+          <form class="compose" id="form">
+            <div class="field-top">
+              <label for="text">Your text</label>
+              <span class="counter"><span id="count">0</span> / 10,000</span>
+            </div>
+            <textarea id="text" name="text" maxlength="10000" placeholder="Paste a passage here. Longer samples generally provide more useful signals…" required></textarea>
+            <div class="compose-footer">
+              <span class="hint">Your text is analyzed by the model hosted with this app.</span>
+              <button class="analyze" id="submit" type="submit">Analyze text <span aria-hidden="true">↗</span></button>
+            </div>
+          </form>
+
+          <aside class="aside" aria-live="polite">
+            <div class="aside-label">Analysis</div>
+            <div class="result-empty" id="empty">Your result will appear here after analysis.</div>
+            <div class="result" id="result">
+              <div class="result-label" id="label"></div>
+              <div class="score-caption">Model confidence</div>
+              <div class="score-value" id="confidence"></div>
+              <div class="bar"><div class="bar-fill" id="bar"></div></div>
+              <div class="scores">
+                <div class="score-row"><span>AI score</span><strong id="ai-score"></strong></div>
+                <div class="score-row"><span>Human score</span><strong id="human-score"></strong></div>
+              </div>
+            </div>
+            <div class="error" id="error" role="alert"></div>
+            <div class="message" id="model-message" hidden></div>
+          </aside>
+        </section>
+
+        <p class="disclaimer">This is an experimental classifier, not proof of authorship. Its estimates can be wrong, especially for short, edited, translated, or out-of-domain text. Do not use the result alone for consequential decisions.</p>
+
+        <section class="steps" aria-label="How it works">
+          <article class="step"><div class="step-number">01</div><h2>Share a passage</h2><p>Paste a text sample up to 10,000 characters for analysis.</p></article>
+          <article class="step"><div class="step-number">02</div><h2>Model assessment</h2><p>A fine-tuned language model compares the sample with patterns it learned.</p></article>
+          <article class="step"><div class="step-number">03</div><h2>Read with care</h2><p>Use the score as one signal, not as a definitive judgment of who wrote it.</p></article>
+        </section>
+      </main>
+      <footer>Origin · AI vs Human Text Detector</footer>
+    </div>
+    <script>
+      const form = document.getElementById("form");
+      const textInput = document.getElementById("text");
+      const submit = document.getElementById("submit");
+      const status = document.getElementById("status");
+      const statusText = document.getElementById("status-text");
+      const errorBox = document.getElementById("error");
+
+      textInput.addEventListener("input", () => {
+        document.getElementById("count").textContent = textInput.value.length;
+      });
+
+      async function loadStatus() {
+        try {
+          const response = await fetch("/api/health");
+          const health = await response.json();
+          if (health.model_ready) {
+            status.classList.add("ready");
+            statusText.textContent = "Detector ready";
+          } else {
+            statusText.textContent = "Model not installed";
+            document.getElementById("model-message").textContent = health.message;
+            document.getElementById("model-message").hidden = false;
+          }
+        } catch {
+          statusText.textContent = "Detector unavailable";
+        }
+      }
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        errorBox.classList.remove("show");
+        const content = textInput.value.trim();
+        if (!content) {
+          errorBox.textContent = "Enter some text before starting the analysis.";
+          errorBox.classList.add("show");
+          return;
+        }
+        submit.disabled = true;
+        submit.innerHTML = 'Analyzing <span aria-hidden="true">…</span>';
+        try {
+          const response = await fetch("/api/detect", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: content }),
+          });
+          const body = await response.json();
+          if (!response.ok) throw new Error(body.detail || "The analysis could not be completed.");
+
+          document.getElementById("empty").hidden = true;
+          const result = document.getElementById("result");
+          result.classList.add("show");
+          const label = document.getElementById("label");
+          label.textContent = body.label === "AI" ? "Likely AI" : "Likely human";
+          label.className = `result-label ${body.label.toLowerCase()}`;
+          document.getElementById("confidence").textContent = `${Math.round(body.confidence * 100)}%`;
+          document.getElementById("ai-score").textContent = `${Math.round(body.ai_score * 100)}%`;
+          document.getElementById("human-score").textContent = `${Math.round(body.human_score * 100)}%`;
+          const bar = document.getElementById("bar");
+          bar.style.width = `${Math.round(body.confidence * 100)}%`;
+          bar.className = `bar-fill ${body.label.toLowerCase()}`;
+          document.getElementById("model-message").hidden = true;
+        } catch (error) {
+          errorBox.textContent = error.message;
+          errorBox.classList.add("show");
+        } finally {
+          submit.disabled = false;
+          submit.innerHTML = 'Analyze text <span aria-hidden="true">↗</span>';
+        }
+      });
+
+      loadStatus();
+    </script>
+  </body>
+</html>
