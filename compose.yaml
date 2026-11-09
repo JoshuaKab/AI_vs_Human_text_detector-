@@ -1,0 +1,10 @@
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      MODEL_PATH: /models/ai_human_detector
+    volumes:
+      - ./ai_human_detector:/models/ai_human_detector:ro
+    restart: unless-stopped
