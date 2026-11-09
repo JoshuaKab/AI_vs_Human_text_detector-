@@ -28,7 +28,7 @@ uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
 Open <http://127.0.0.1:8000>. Interactive API documentation is available at
-<http://127.0.0.1:8000/docs>. If using a different model directory, set
+link https://ai-vs-human-text-detector-mmg1.onrender.com
 `MODEL_PATH` to its path before starting the server.
 
 If the model directory is missing, the website still loads and reports the
